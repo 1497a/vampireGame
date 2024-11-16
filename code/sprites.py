@@ -26,11 +26,19 @@ class Gun(pygame.sprite.Sprite):
         self.gun_surf = pygame.image.load(join('images', 'gun', 'gun.png')).convert_alpha()
         self.image = self.gun_surf
         self.rect = self.image.get_rect(center=(self.player.rect.center + self.player_direction * self.distance))
-    
+        new_width = self.gun_surf.get_width() // 2  # Giảm 50% chiều rộng
+        new_height = self.gun_surf.get_height() // 2  # Giảm 50% chiều cao
+        self.gun_surf = pygame.transform.scale(self.gun_surf, (new_width, new_height))
     def get_direction(self):
         mouse_pos = pygame.Vector2(pygame.mouse.get_pos())
         player_pos = pygame.Vector2(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2)
-        self.player_direction = (mouse_pos - player_pos).normalize()
+        direction = mouse_pos - player_pos
+
+        # Kiểm tra nếu vector có độ dài 0
+        if direction.length() == 0:
+            self.player_direction = pygame.Vector2(0, 1)  # Hướng mặc định (thẳng xuống)
+        else:
+            self.player_direction = direction.normalize()
 
     def rotate_gun(self):
         angle = degrees(atan2(self.player_direction.x, self.player_direction.y)) - 90
@@ -83,23 +91,26 @@ class Enemy(pygame.sprite.Sprite):
 
         # timer 
         self.death_time = 0
-        self.death_duration = 400
+        self.death_duration = 100
     
     def animate(self, dt):
         self.frame_index += self.animation_speed * dt
         self.image = self.frames[int(self.frame_index) % len(self.frames)]
 
     def move(self, dt):
-        # get direction 
+        # Tính toán hướng từ kẻ thù đến người chơi
         player_pos = pygame.Vector2(self.player.rect.center)
         enemy_pos = pygame.Vector2(self.rect.center)
-        vector = player_pos - enemy_pos
-        if vector.length() != 0:
-            self.direction = vector.normalize()
-        else:
-            self.direction = pygame.math.Vector2(0, 0)
+        direction = player_pos - enemy_pos
 
-        # update the rect position + collision
+        # Kiểm tra nếu vector có độ dài bằng 0 (chúng trùng nhau)
+        if direction.length() == 0:
+            direction = pygame.Vector2(0, 1)  # Gán hướng mặc định nếu kẻ thù và người chơi trùng nhau
+
+        # Chuẩn hóa vector nếu không có độ dài bằng 0
+        self.direction = direction.normalize()
+
+        # Cập nhật vị trí kẻ thù và kiểm tra va chạm
         self.hitbox_rect.x += self.direction.x * self.speed * dt
         self.collision('horizontal')
         self.hitbox_rect.y += self.direction.y * self.speed * dt
