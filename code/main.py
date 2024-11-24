@@ -17,6 +17,7 @@ class Game:
         self.running = True
         self.menu = Menu(self)
         self.menu.run()  # Chạy menu trước khi bắt đầu trò chơi
+        
         # groups 
         self.all_sprites = AllSprites()
         self.collision_sprites = pygame.sprite.Group()
@@ -32,13 +33,14 @@ class Game:
         self.hit_count = 0  # Bộ đếm số lần trúng của bulle
         # tự động bắn
         self.auto_shoot_timer = 0  # Bộ đếm thời gian cho việc bắn tự động
-        self.auto_shoot_interval = 600  # Tần suất bắn (ms)
+        self.auto_shoot_interval = 1000  # Tần suất bắn (ms)
 
         # enemy timer a
         self.enemy_event = pygame.event.custom_type()
-        self.enemy_spawn_rate = 600  # Thời gian giữa mỗi lần sinh quái (ms)
-        pygame.time.set_timer(self.enemy_event, 600)
+        self.enemy_spawn_rate = 500  # Thời gian giữa mỗi lần sinh quái (ms)
+        pygame.time.set_timer(self.enemy_event, 500)
         self.spawn_positions = []
+        self.previous_minutes = 0  # Số phút đã cập nhật trước đó
 
         # audio 
         self.shoot_sound = pygame.mixer.Sound(join('audio', 'shoot.wav'))
@@ -117,7 +119,7 @@ class Game:
                         sprite.destroy()
                     bullet.kill()
                     if self.hit_count % 10 == 0:  # Cứ mỗi 10 quái bị giết
-                        self.auto_shoot_interval = max(10, self.auto_shoot_interval -20)  # Giảm đến tối đa 200ms
+                        self.auto_shoot_interval = max(300, self.auto_shoot_interval -20)  # Giảm đến tối đa 200ms
 
     def player_collision(self):
         if pygame.sprite.spritecollide(self.player, self.enemy_sprites, False, pygame.sprite.collide_mask):
@@ -127,6 +129,7 @@ class Game:
             self.game_over = False
             self.auto_shoot_interval =600
             self.enemy_spawn_rate = 600  # Thời gian giữa mỗi lần sinh quái (ms)
+            self.previous_minutes = 0  # Số phút đã cập nhật trước đó
             pygame.time.set_timer(self.enemy_event, 600)
             self.hit_count = 0  
             self.all_sprites.empty()
@@ -145,11 +148,15 @@ class Game:
             # Tính số phút đã trôi qua
             minutes = self.elapsed_time // 60000
 
-            if minutes > 0 and self.elapsed_time // 60000 == minutes:
-            # Tăng tốc độ sinh quái sau mỗi phút
-                self.enemy_spawn_rate = max(100, self.enemy_spawn_rate - 10)  # Đảm bảo tốc độ không quá thấp
+            # Nếu số phút hiện tại khác số phút trước đó
+            if minutes > self.previous_minutes:
+                self.previous_minutes = minutes  # Cập nhật số phút hiện tại
+
+                # Mỗi phút trôi qua giảm tốc độ sinh quái đúng 30
+                self.enemy_spawn_rate = max(10, self.enemy_spawn_rate - 30)
+                print(self.enemy_spawn_rate)
+                # Cập nhật thời gian sự kiện sinh quái
                 pygame.time.set_timer(self.enemy_event, self.enemy_spawn_rate)
-    
             # event loop 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
